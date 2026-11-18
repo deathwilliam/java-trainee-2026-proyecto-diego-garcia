@@ -1,0 +1,135 @@
+erDiagram
+    usuario {
+        bigint id PK "NOT NULL"
+        varchar(100) nombre "NOT NULL"
+        varchar(100) apellido "NOT NULL"
+        varchar(150) email UK "NOT NULL"
+        varchar(10) dui UK "NOT NULL"
+        varchar(255) password "NOT NULL"
+        varchar(20) estado "NOT NULL - 'ACTIVO', 'BLOQUEADO'"
+        timestamp creado_en "NOT NULL"
+    }
+
+    rol {
+        bigint id PK "NOT NULL"
+        varchar(50) nombre UK "NOT NULL"
+        boolean activo "NOT NULL"
+        timestamp creado_en "NOT NULL"
+    }
+
+    usuario_rol {
+        bigint usuario_id PK, FK "NOT NULL"
+        bigint rol_id PK, FK  "NOT NULL"
+    }
+
+    moneda {
+        bigint id PK "NOT NULL"
+        varchar(3) codigo UK "NOT NULL"
+        varchar(50) nombre "NOT NULL"
+        varchar(5) simbolo "NULL"
+        boolean activo "NOT NULL"
+        timestamp creado_en "NOT NULL"
+    }
+
+    tipo_cuenta {
+        bigint id PK "NOT NULL"
+        varchar(50) nombre UK "NOT NULL"
+        varchar(200) descripcion "NULL"
+        boolean activo "NOT NULL"
+        timestamp creado_en "NOT NULL"
+    }
+
+    cuenta {
+        bigint id PK "NOT NULL"
+        bigint usuario_id FK "NOT NULL"
+        bigint tipo_cuenta_id FK "NOT NULL"
+        bigint moneda_id FK "NOT NULL"
+        varchar(20) numero_cuenta UK "NOT NULL"
+        numeric(15,2) saldo "NOT NULL - DERIVADO - CHECK >= 0"
+        varchar(20) estado "NOT NULL - 'ACTIVA', 'BLOQUEADA', 'CERRADA'"
+        timestamp creado_en "NOT NULL"
+    }
+
+    categoria {
+        bigint id PK "NOT NULL"
+        bigint usuario_id FK "NOT NULL"
+        varchar(80) nombre "NOT NULL - UK con usuario_id"
+        varchar(20) tipo "NOT NULL - 'INGRESO', 'EGRESO'"
+    }
+
+    transaccion {
+        bigint id PK "NOT NULL"
+        bigint categoria_id FK "NULL"
+        varchar(30) referencia UK "NOT NULL"
+        varchar(20) tipo "NOT NULL - 'INGRESO', 'EGRESO', 'TRANSFERENCIA'; TRANSFERENCIA: MISMA MONEDA EN AMBAS CUENTAS"
+        numeric(15,2) monto "NOT NULL - CHECK > 0 - IGUAL AL MONTO DE CADA DETALLE"
+        varchar(255) descripcion "NULL"
+        varchar(100) contraparte "NULL"
+        varchar(20) estado "NOT NULL - 'COMPLETADA', 'REVERTIDA'"
+        timestamp fecha "NOT NULL"
+    }
+
+    detalle_transaccion {
+        bigint id PK "NOT NULL"
+        bigint transaccion_id FK "NOT NULL"
+        bigint cuenta_id FK "NOT NULL"
+        varchar(20) tipo_movimiento "NOT NULL - 'DEBITO', 'CREDITO'"
+        numeric(15,2) monto "NOT NULL - CHECK > 0"
+        numeric(15,2) saldo_resultante "NOT NULL - DERIVADO"
+    }
+
+    presupuesto {
+        bigint id PK "NOT NULL"
+        bigint categoria_id FK "NOT NULL"
+        numeric(15,2) monto_limite "NOT NULL - CHECK > 0"
+        date fecha_inicio "NOT NULL"
+        date fecha_fin "NOT NULL"
+        varchar(20) estado "NOT NULL - 'ACTIVO', 'INACTIVO'"
+    }
+
+    meta_ahorro {
+        bigint id PK "NOT NULL"
+        bigint cuenta_id FK "NOT NULL"
+        varchar(100) nombre "NOT NULL"
+        numeric(15,2) monto_objetivo "NOT NULL - CHECK > 0"
+        date fecha_limite "NULL"
+        varchar(20) estado "NOT NULL - 'ACTIVO', 'COMPLETADO', 'CANCELADO'"
+    }
+
+    transaccion_recurrente {
+        bigint id PK "NOT NULL"
+        bigint cuenta_id FK "NOT NULL"
+        bigint categoria_id FK "NULL"
+        varchar(20) tipo "NOT NULL · INGRESO, EGRESO"
+        numeric(15,2) monto "NOT NULL · CHECK > 0"
+        varchar(255) descripcion "NULL"
+        varchar(20) frecuencia "NOT NULL · DIARIA, SEMANAL, MENSUAL, ANUAL"
+        date proxima_ejecucion "NOT NULL"
+        varchar(20) estado "NOT NULL · ACTIVA, PAUSADA, FINALIZADA"
+    }
+
+    bitacora {
+        bigint id PK "NOT NULL"
+        bigint usuario_id FK "NULL"
+        varchar(50) accion "NOT NULL - 'EJECUTAR_RECURRENTE', 'TRANSFERIR', 'REGISTRAR_MOVIMIENTO', 'REVERTIR_TRANSACCION'"
+        varchar(20) resultado "NOT NULL - 'EXITOSO', 'FALLIDO'"
+        varchar(50) entidad "NOT NULL"
+        bigint entidad_id "NULL"
+        text detalle "NULL"
+        timestamp fecha "NOT NULL"
+    }
+
+    usuario ||--o{ usuario_rol : tiene
+    rol ||--o{ usuario_rol : se_asigna
+    usuario ||--o{ cuenta : posee
+    tipo_cuenta ||--o{ cuenta : clasifica
+    moneda ||--o{ cuenta : denomina
+    usuario ||--o{ categoria : define
+    categoria |o--o{ transaccion : clasifica
+    transaccion ||--|{ detalle_transaccion : contiene
+    cuenta ||--o{ detalle_transaccion : afecta
+    categoria ||--o{ presupuesto : limita
+    cuenta ||--o{ meta_ahorro : financia
+    cuenta ||--o{ transaccion_recurrente : programa
+    categoria |o--o{ transaccion_recurrente : clasifica
+    usuario |o--o{ bitacora : genera

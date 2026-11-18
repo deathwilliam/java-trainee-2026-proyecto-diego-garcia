@@ -1,0 +1,240 @@
+classDiagram
+    direction LR
+
+    class EstadoUsuario {
+        <<enumeration>>
+        ACTIVO
+        BLOQUEADO
+    }
+    class EstadoCuenta {
+        <<enumeration>>
+        ACTIVA
+        BLOQUEADA
+        CERRADA
+    }
+    class TipoCategoria {
+        <<enumeration>>
+        INGRESO
+        EGRESO
+    }
+    class TipoTransaccion {
+        <<enumeration>>
+        INGRESO
+        EGRESO
+        TRANSFERENCIA
+    }
+    class TipoRecurrente {
+        <<enumeration>>
+        INGRESO
+        EGRESO
+    }
+    class EstadoTransaccion {
+        <<enumeration>>
+        COMPLETADA
+        REVERTIDA
+    }
+    class TipoMovimiento {
+        <<enumeration>>
+        DEBITO
+        CREDITO
+    }
+    class EstadoPresupuesto {
+        <<enumeration>>
+        ACTIVO
+        INACTIVO
+    }
+    class EstadoMeta {
+        <<enumeration>>
+        ACTIVO
+        COMPLETADO
+        CANCELADO
+    }
+    class Frecuencia {
+        <<enumeration>>
+        DIARIA
+        SEMANAL
+        MENSUAL
+        ANUAL
+    }
+    class EstadoRecurrente {
+        <<enumeration>>
+        ACTIVA
+        PAUSADA
+        FINALIZADA
+    }
+    class AccionBitacora {
+        <<enumeration>>
+        EJECUTAR_RECURRENTE
+        TRANSFERIR
+        REGISTRAR_MOVIMIENTO
+        REVERTIR_TRANSACCION
+    }
+    class ResultadoBitacora {
+        <<enumeration>>
+        EXITOSO
+        FALLIDO
+    }
+
+    class Usuario {
+        <<Entity>>
+        -Long id
+        -String nombre
+        -String apellido
+        -String email
+        -String dui
+        -String password
+        -EstadoUsuario estado
+        -LocalDateTime creadoEn
+        -Set~Rol~ roles
+        +estaActivo() boolean
+    }
+    class Rol {
+        <<Entity>>
+        -Long id
+        -String nombre
+        -Boolean activo
+        -LocalDateTime creadoEn
+    }
+    class Moneda {
+        <<Entity>>
+        -Long id
+        -String codigo
+        -String nombre
+        -String simbolo
+        -Boolean activo
+        -LocalDateTime creadoEn
+    }
+    class TipoCuenta {
+        <<Entity>>
+        -Long id
+        -String nombre
+        -String descripcion
+        -Boolean activo
+        -LocalDateTime creadoEn
+    }
+    class Cuenta {
+        <<Entity>>
+        -Long id
+        -Usuario usuario
+        -TipoCuenta tipoCuenta
+        -Moneda moneda
+        -String numeroCuenta
+        -BigDecimal saldo
+        -EstadoCuenta estado
+        -LocalDateTime creadoEn
+        +estaActiva() boolean
+        +perteneceA(Long usuarioId) boolean
+        +tieneMismaMoneda(Cuenta otra) boolean
+        +tieneSaldoSuficiente(BigDecimal monto) boolean
+        +debitar(BigDecimal monto) void
+        +acreditar(BigDecimal monto) void
+    }
+    class Categoria {
+        <<Entity>>
+        -Long id
+        -Usuario usuario
+        -String nombre
+        -TipoCategoria tipo
+    }
+    class Transaccion {
+        <<Entity>>
+        -Long id
+        -Categoria categoria
+        -String referencia
+        -TipoTransaccion tipo
+        -BigDecimal monto
+        -String descripcion
+        -String contraparte
+        -EstadoTransaccion estado
+        -LocalDateTime fecha
+        -List~DetalleTransaccion~ detalles
+        +agregarDetalle(DetalleTransaccion d) void
+        +puedeRevertirse() boolean
+        +marcarRevertida() void
+    }
+    class DetalleTransaccion {
+        <<Entity>>
+        -Long id
+        -Transaccion transaccion
+        -Cuenta cuenta
+        -TipoMovimiento tipoMovimiento
+        -BigDecimal monto
+        -BigDecimal saldoResultante
+    }
+    class Presupuesto {
+        <<Entity>>
+        -Long id
+        -Categoria categoria
+        -BigDecimal montoLimite
+        -LocalDate fechaInicio
+        -LocalDate fechaFin
+        -EstadoPresupuesto estado
+        +estaActivo() boolean
+        +estaVigente(LocalDate fecha) boolean
+        +superaLimite(BigDecimal totalConEgreso) boolean
+    }
+    class MetaAhorro {
+        <<Entity>>
+        -Long id
+        -Cuenta cuenta
+        -String nombre
+        -BigDecimal montoObjetivo
+        -LocalDate fechaLimite
+        -EstadoMeta estado
+        +calcularAvance() BigDecimal
+        +haAlcanzadoObjetivo() boolean
+        +completar() void
+    }
+    class TransaccionRecurrente {
+        <<Entity>>
+        -Long id
+        -Cuenta cuenta
+        -Categoria categoria
+        -TipoRecurrente tipo
+        -BigDecimal monto
+        -String descripcion
+        -Frecuencia frecuencia
+        -LocalDate proximaEjecucion
+        -EstadoRecurrente estado
+        +puedeEjecutarse(LocalDate hoy) boolean
+        +avanzarProximaEjecucion() void
+    }
+    class Bitacora {
+        <<Entity>>
+        -Long id
+        -Usuario usuario
+        -AccionBitacora accion
+        -String entidad
+        -Long entidadId
+        -ResultadoBitacora resultado
+        -String detalle
+        -LocalDateTime fecha
+    }
+
+    Usuario "0..*" -- "0..*" Rol : tiene
+    Usuario "1" -- "0..*" Cuenta : posee
+    TipoCuenta "1" -- "0..*" Cuenta : clasifica
+    Moneda "1" -- "0..*" Cuenta : denomina
+    Usuario "1" -- "0..*" Categoria : define
+    Categoria "0..1" -- "0..*" Transaccion : clasifica
+    Transaccion "1" *-- "1..*" DetalleTransaccion : contiene
+    Cuenta "1" -- "0..*" DetalleTransaccion : afecta
+    Categoria "1" -- "0..*" Presupuesto : limita
+    Cuenta "1" -- "0..*" MetaAhorro : financia
+    Cuenta "1" -- "0..*" TransaccionRecurrente : programa
+    Categoria "0..1" -- "0..*" TransaccionRecurrente : clasifica
+    Usuario "0..1" -- "0..*" Bitacora : genera
+
+    Usuario ..> EstadoUsuario
+    Cuenta ..> EstadoCuenta
+    Categoria ..> TipoCategoria
+    Transaccion ..> TipoTransaccion
+    Transaccion ..> EstadoTransaccion
+    DetalleTransaccion ..> TipoMovimiento
+    Presupuesto ..> EstadoPresupuesto
+    MetaAhorro ..> EstadoMeta
+    TransaccionRecurrente ..> TipoRecurrente
+    TransaccionRecurrente ..> Frecuencia
+    TransaccionRecurrente ..> EstadoRecurrente
+    Bitacora ..> AccionBitacora
+    Bitacora ..> ResultadoBitacora
